@@ -153,13 +153,14 @@ impl FromStr for Directory {
                 )
             }
         });
-        
+
         if let Some(Command::ChangeDirectory(name)) = iter.next() {
             let mut root = Directory::new(name);
             root.ingest(&mut iter);
-            return Ok(root);
+            Ok(root)
+        } else {
+            Err(())
         }
-        unreachable!()
     }
 }
 
