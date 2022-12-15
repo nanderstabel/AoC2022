@@ -9,38 +9,13 @@ type List = Vec<Box<dyn FileType>>;
 
 #[derive(Debug)]
 enum Command {
-    ChangeDirectory(Directory),
+    ChangeDirectory(String),
     List(List),
-}
-
-impl FromStr for Command {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(if let Some(("cd", arguments)) = s.split_once(' ') {
-            Command::ChangeDirectory(arguments.parse()?)
-        } else {
-            Command::List(
-                s.lines()
-                    .skip(1)
-                    .map(|l| {
-                        let (file_type, name) = l.split_once(' ').unwrap();
-                        let name = name.trim_end().to_string();
-                        match file_type {
-                            "dir" => Box::new(Directory::new(name)) as Box<dyn FileType>,
-                            size => Box::new(File::new(name, size.parse().unwrap())),
-                        }
-                    })
-                    .collect(),
-            )
-        })
-    }
 }
 
 trait FileType: std::fmt::Debug + FileTypeToAny {
     fn name(&self) -> String;
     fn size(&self) -> usize;
-    fn flatten(&self) -> Vec<&Directory>;
 }
 
 trait FileTypeToAny: 'static {
@@ -77,10 +52,6 @@ impl FileType for File {
     fn size(&self) -> usize {
         self.size
     }
-
-    fn flatten(&self) -> Vec<&Directory> {
-        vec![]
-    }
 }
 
 #[derive(Debug)]
@@ -104,15 +75,12 @@ impl Directory {
         let mut input = iter.into_iter();
         while let Some(command) = input.next() {
             match command {
-                Command::ChangeDirectory(cd) => {
-                    if cd.name() != *".." {
-                        input = if let Some(dir) = (**self
-                            .children
-                            .iter_mut()
-                            .find(|c| c.name() == cd.name())
-                            .unwrap())
-                        .as_any_mut()
-                        .downcast_mut::<Directory>()
+                Command::ChangeDirectory(name) => {
+                    if name != *".." {
+                        input = if let Some(dir) =
+                            (**self.children.iter_mut().find(|c| c.name() == name).unwrap())
+                                .as_any_mut()
+                                .downcast_mut::<Directory>()
                         {
                             dir.ingest(input)
                         } else {
@@ -126,6 +94,18 @@ impl Directory {
             }
         }
         input
+    }
+
+    fn flatten(&self) -> Vec<&Directory> {
+        [
+            vec![self],
+            self.children
+                .iter()
+                .filter_map(|c| (**c).as_any_ref().downcast_ref::<Directory>())
+                .flat_map(|dir| dir.flatten())
+                .collect(),
+        ]
+        .concat()
     }
 
     pub fn iter(&self) -> DirectoryIter {
@@ -148,36 +128,36 @@ impl FileType for Directory {
     fn size(&self) -> usize {
         self.children.iter().map(|f| f.size()).sum()
     }
-
-    fn flatten(&self) -> Vec<&Directory> {
-        [
-            vec![self],
-            self.children
-                .iter()
-                .filter_map(|c| (**c).as_any_ref().downcast_ref::<Directory>())
-                .flat_map(|dir| dir.flatten())
-                .collect(),
-        ]
-        .concat()
-    }
 }
 
 impl FromStr for Directory {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Directory::new(s.trim_end().to_string()))
-    }
-}
-
-impl FromIterator<Command> for Directory {
-    fn from_iter<I: IntoIterator<Item = Command>>(iter: I) -> Self {
-        let mut iter = iter.into_iter();
-        iter.next();
-        if let Some(Command::ChangeDirectory(cd)) = iter.next() {
-            let mut root = Directory::new(cd.name());
+        let mut iter = s.split("$ ").skip(1).map(|s| {
+            if let Some(("cd", name)) = s.split_once(' ') {
+                Command::ChangeDirectory(name.trim_end().to_string())
+            } else {
+                Command::List(
+                    s.lines()
+                        .skip(1)
+                        .map(|l| {
+                            let (file_type, name) = l.split_once(' ').unwrap();
+                            let name = name.trim_end().to_string();
+                            match file_type {
+                                "dir" => Box::new(Directory::new(name)) as Box<dyn FileType>,
+                                size => Box::new(File::new(name, size.parse().unwrap())),
+                            }
+                        })
+                        .collect(),
+                )
+            }
+        });
+        
+        if let Some(Command::ChangeDirectory(name)) = iter.next() {
+            let mut root = Directory::new(name);
             root.ingest(&mut iter);
-            return root;
+            return Ok(root);
         }
         unreachable!()
     }
@@ -202,9 +182,7 @@ impl<'a> Iterator for DirectoryIter<'a> {
 }
 
 fn main() {
-    let input = read::<Command>("d07/input.txt", "$ ");
-
-    let root: Directory = input.into_iter().collect();
+    let root = read_input::<Directory>("d07/input.txt");
 
     output!(
         root.iter()
