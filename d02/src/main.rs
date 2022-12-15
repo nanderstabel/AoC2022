@@ -90,7 +90,7 @@ fn get_play(round: &Round) -> u32 {
 }
 
 fn main() {
-    let input = read::<Round>("d02/input", SINGLELINE);
+    let input = read::<Round>("d02/input.txt", SINGLELINE);
 
     output!(input.iter().fold((0, 0), |sum, val| {
         (sum.0 + get_result(val), sum.1 + get_play(val))

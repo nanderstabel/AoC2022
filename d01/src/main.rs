@@ -56,7 +56,7 @@ impl Elf {
 }
 
 fn main() {
-    let input = read::<Elf>("d01/input", MULTILINE);
+    let input = read::<Elf>("d01/input.txt", MULTILINE);
 
     let mut all_calories = input
         .iter()

@@ -126,7 +126,7 @@ impl Setup {
 }
 
 fn main() {
-    let mut crate_mover_9000 = CrateMover::M9000(read_input::<Setup>("d05/input"));
+    let mut crate_mover_9000 = CrateMover::M9000(read_input::<Setup>("d05/input.txt"));
     let mut crate_mover_9001 = CrateMover::M9001(crate_mover_9000.setup());
 
     crate_mover_9000.commit_procedures();

@@ -98,7 +98,7 @@ impl Group {
 }
 
 fn main() {
-    let input = read::<Rucksack>("d03/input", SINGLELINE);
+    let input = read::<Rucksack>("d03/input.txt", SINGLELINE);
     let input2 = input.chunks_exact(3).map(|c| Group {
         rucksacks: c.to_vec(),
     });

@@ -50,7 +50,7 @@ impl RangePair {
 }
 
 fn main() {
-    let input = read::<RangePair>("d04/input", SINGLELINE);
+    let input = read::<RangePair>("d04/input.txt", SINGLELINE);
 
     output!(
         input

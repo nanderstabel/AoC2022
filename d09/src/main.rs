@@ -166,7 +166,7 @@ impl Forest {
 }
 
 fn main() {
-    let mut input = read_input::<Forest>("d08/input.txt");
+    let mut input = read_input::<Forest>("d09/input.txt");
 
     output!(input.get_total_visible(), input.get_max_scenic_score());
 }
